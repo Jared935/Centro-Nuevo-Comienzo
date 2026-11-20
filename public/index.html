@@ -28,6 +28,7 @@ button{font:inherit}
 .btn,form button[type=submit]{background:var(--blue);color:#fff;border:0;padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer}
 td button{background:none;border:1.5px solid var(--line);border-radius:8px;padding:4px 10px;cursor:pointer;color:var(--ink)}
 td button.x{color:var(--bad);border-color:var(--bad)}
+td a{color:var(--blue);font-weight:600;font-size:.9rem}
 :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 .w{overflow-x:auto}
 table{width:100%;border-collapse:collapse;background:var(--card);border-radius:12px;overflow:hidden}
@@ -65,11 +66,12 @@ small{opacity:.75}
 </div>
 
 <div id="app" hidden>
-<header><h1>CRM Centro Nuevo Comienzo, Villas del Bajío</h1><span><small id="who"></small> <button class="btn" id="out">Salir</button></span></header>
+<header><h1>CRM Centro Nuevo Comienzo, Juventino Rosas</h1><span><small id="who"></small> <button class="btn" id="out">Salir</button></span></header>
 <nav id="tabs">
   <button data-tab="per" class="on">Personas</button>
   <button data-tab="act">Actividades</button>
   <button data-tab="ins">Inscripciones</button>
+  <button data-tab="seg">Seguimiento</button>
   <button data-tab="psi" id="tPsi" hidden>Psicología</button>
 </nav>
 <main>
@@ -84,8 +86,8 @@ small{opacity:.75}
     <label>Cómo se enteró<select name="origen"><option>Facebook</option><option>Referido</option><option>Volante o flyer</option><option>Pasó por el centro</option><option>Otro</option></select></label>
     <button type="submit">Guardar persona</button>
   </form>
-  <div class="bar"><label>Buscar<input id="q" placeholder="Nombre, teléfono o colonia"></label></div>
-  <div class="w"><table><thead><tr><th>Persona</th><th>Contacto</th><th>Grupo</th><th>Última nota</th><th></th></tr></thead><tbody id="lp"></tbody></table></div>
+  <div class="bar"><label>Buscar<input id="q" placeholder="Nombre, teléfono o colonia"></label><button class="btn" id="bCsv" type="button">Exportar a Excel (CSV)</button></div>
+  <div class="w"><table><thead><tr><th>Persona</th><th>Contacto</th><th>Grupo</th><th>Estatus</th><th>Última nota</th><th></th></tr></thead><tbody id="lp"></tbody></table></div>
 </section>
 
 <section id="act">
@@ -110,6 +112,17 @@ small{opacity:.75}
     <button class="btn" id="bIns">Inscribir</button>
   </div>
   <div class="w"><table><thead><tr><th>Persona</th><th>Pagó</th><th>Asistió</th><th></th></tr></thead><tbody id="li"></tbody></table></div>
+</section>
+
+<section id="seg">
+  <h2>Seguimiento</h2><p class="h" id="segRes"></p>
+  <form id="fSeg">
+    <label>Persona<select id="selPs" name="personaId" required></select></label>
+    <label>Fecha<input type="date" name="fecha" required></label>
+    <label>Qué hacer<input name="texto" placeholder="Llamar para invitar al taller" required></label>
+    <button type="submit">Agendar seguimiento</button>
+  </form>
+  <div class="w"><table><thead><tr><th>Cuándo</th><th>Persona</th><th>Qué hacer</th><th></th></tr></thead><tbody id="ls"></tbody></table></div>
 </section>
 
 <section id="psi">
@@ -139,7 +152,7 @@ const firebaseConfig={apiKey:"AIzaSyD_aZituvCfHUWQ3ky-HZsFZTjdEGcCtjY",authDomai
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const D={personas:[],actividades:[],inscripciones:[],citasPsicologia:[]};
+const D={personas:[],actividades:[],inscripciones:[],citasPsicologia:[],tareas:[]};
 let rol=null,user=null,unsubs=[];
 
 function toast(m,bad){const t=$("#toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",3500)}
@@ -171,7 +184,7 @@ onAuthStateChanged(auth,async u=>{
   if(!["admin","recepcion","psicologia"].includes(rol)){showLogin(true);return}
   $("#login").hidden=true;$("#app").hidden=false;$("#who").textContent=u.email+" ("+rol+")";
   const psi=["admin","psicologia"].includes(rol);$("#tPsi").hidden=!psi;
-  sub("personas","nombre");sub("actividades","fecha");sub("inscripciones","creado");
+  sub("personas","nombre");sub("actividades","fecha");sub("inscripciones","creado");sub("tareas","fecha");
   if(psi)sub("citasPsicologia","fecha");
 });
 function sub(n,o){unsubs.push(onSnapshot(query(collection(db,n),orderBy(o)),s=>{D[n]=s.docs.map(d=>({id:d.id,...d.data()}));render()},e=>toast("Sin permiso o sin conexión en "+n,true)))}
@@ -179,24 +192,31 @@ function sub(n,o){unsubs.push(onSnapshot(query(collection(db,n),orderBy(o)),s=>{
 /* Pestañas */
 $("#tabs").onclick=e=>{const t=e.target.dataset.tab;if(!t)return;$$("nav button").forEach(b=>b.classList.toggle("on",b===e.target));$$("section").forEach(s=>s.classList.toggle("on",s.id===t))};
 
+/* Recordatorios por WhatsApp: abre el chat con el mensaje listo */
+const wa=(id,msg)=>{let t=(D.personas.find(p=>p.id===id)?.telefono||"").replace(/\D/g,"");if(!t)return "<small>Sin teléfono</small>";if(t.length===10)t="52"+t;return `<a href="https://wa.me/${t}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Enviar por WhatsApp</a>`};
+const msgIns=i=>{const a=D.actividades.find(x=>x.id===i.actividadId)||{};return `Hola ${i.personaNombre}, te recordamos tu actividad "${i.actividadNombre}"${a.fecha?" el "+fecha(a.fecha):""}${a.horario?" a las "+a.horario:""} en el Centro Nuevo Comienzo, Juventino Rosas. ¡Te esperamos!`};
+
 /* Pintado */
 function render(){
   const q=$("#q").value.toLowerCase(),cnt=a=>D.inscripciones.filter(i=>i.actividadId===a).length;
   $("#lp").innerHTML=D.personas.filter(p=>`${p.nombre} ${p.telefono} ${p.colonia}`.toLowerCase().includes(q)).map(p=>{
     const n=(p.seguimientos||[]).slice(-1)[0];
-    return `<tr><td><b>${esc(p.nombre)}</b><br><small>${esc(p.colonia)}, vía ${esc(p.origen)}</small></td><td>${esc(p.telefono)}</td><td>${esc(p.grupo)}</td><td>${n?esc(n.texto)+"<br><small>"+esc(n.fecha)+"</small>":""}</td><td><button data-a="nota" data-id="${p.id}">Agregar nota</button> <button class="x" data-a="delp" data-id="${p.id}">Eliminar</button></td></tr>`}).join("")||`<tr><td colspan="5">Aún no hay personas. Registra la primera arriba.</td></tr>`;
+    return `<tr><td><b>${esc(p.nombre)}</b><br><small>${esc(p.colonia)}, vía ${esc(p.origen)}</small></td><td>${esc(p.telefono)}<br>${wa(p.id,"Hola "+p.nombre+", te escribimos del Centro Nuevo Comienzo, Juventino Rosas.")}</td><td>${esc(p.grupo)}</td><td><select data-a="estp" data-id="${p.id}">${["Nuevo","En seguimiento","Activo","Inactivo"].map(x=>`<option ${x===(p.estatus||"Nuevo")?"selected":""}>${x}</option>`).join("")}</select></td><td>${n?esc(n.texto)+"<br><small>"+esc(n.fecha)+"</small>":""}</td><td><button data-a="nota" data-id="${p.id}">Agregar nota</button> <button class="x" data-a="delp" data-id="${p.id}">Eliminar</button></td></tr>`}).join("")||`<tr><td colspan="6">Aún no hay personas. Registra la primera arriba.</td></tr>`;
   $("#la").innerHTML=D.actividades.map(a=>`<tr><td><b>${esc(a.nombre)}</b><br><small>${esc(a.tipo)}, ${esc(a.horario)}</small></td><td>${fecha(a.fecha)}</td><td>${a.costo>0?"$"+a.costo:"Gratis"}</td><td>${cnt(a.id)} de ${a.cupo}</td><td><button class="x" data-a="dela" data-id="${a.id}">Eliminar</button></td></tr>`).join("")||`<tr><td colspan="5">Aún no hay actividades. Crea la primera arriba.</td></tr>`;
   fill("#selA",D.actividades.map(a=>`<option value="${a.id}">${esc(a.nombre)} (${fecha(a.fecha)})</option>`).join(""));
-  const po=D.personas.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join("");fill("#selP",po);fill("#selPc",po);
+  const po=D.personas.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join("");fill("#selP",po);fill("#selPc",po);fill("#selPs",po);
   const A=$("#selA").value;
-  $("#li").innerHTML=D.inscripciones.filter(i=>i.actividadId===A).map(i=>`<tr><td>${esc(i.personaNombre)}</td><td><input type="checkbox" data-a="pag" data-id="${i.id}" ${i.pagado?"checked":""} aria-label="Pagó"></td><td><input type="checkbox" data-a="asi" data-id="${i.id}" ${i.asistio?"checked":""} aria-label="Asistió"></td><td><button class="x" data-a="deli" data-id="${i.id}">Quitar</button></td></tr>`).join("")||`<tr><td colspan="4">Nadie inscrito en esta actividad todavía.</td></tr>`;
-  $("#lc").innerHTML=D.citasPsicologia.map(c=>`<tr><td>${esc(c.personaNombre)}</td><td>${fecha(c.fecha)}, ${esc(c.hora)}</td><td><select data-a="est" data-id="${c.id}">${["Pendiente","Atendida","Cancelada"].map(s=>`<option ${s===c.estado?"selected":""}>${s}</option>`).join("")}</select></td><td>${esc(c.notas)}</td><td><button class="x" data-a="delc" data-id="${c.id}">Eliminar</button></td></tr>`).join("")||`<tr><td colspan="5">No hay citas agendadas.</td></tr>`;
+  $("#li").innerHTML=D.inscripciones.filter(i=>i.actividadId===A).map(i=>`<tr><td>${esc(i.personaNombre)}</td><td><input type="checkbox" data-a="pag" data-id="${i.id}" ${i.pagado?"checked":""} aria-label="Pagó"></td><td><input type="checkbox" data-a="asi" data-id="${i.id}" ${i.asistio?"checked":""} aria-label="Asistió"></td><td>${wa(i.personaId,msgIns(i))} <button class="x" data-a="deli" data-id="${i.id}">Quitar</button></td></tr>`).join("")||`<tr><td colspan="4">Nadie inscrito en esta actividad todavía.</td></tr>`;
+  $("#lc").innerHTML=D.citasPsicologia.map(c=>`<tr><td>${esc(c.personaNombre)}</td><td>${fecha(c.fecha)}, ${esc(c.hora)}</td><td><select data-a="est" data-id="${c.id}">${["Pendiente","Atendida","Cancelada"].map(s=>`<option ${s===c.estado?"selected":""}>${s}</option>`).join("")}</select></td><td>${esc(c.notas)}</td><td>${wa(c.personaId,`Hola ${c.personaNombre}, te recordamos tu cita el ${fecha(c.fecha)} a las ${c.hora} en el Centro Nuevo Comienzo, Juventino Rosas.`)} <button class="x" data-a="delc" data-id="${c.id}">Eliminar</button></td></tr>`).join("")||`<tr><td colspan="5">No hay citas agendadas.</td></tr>`;
+  const hoy=new Date().toLocaleDateString("en-CA"),pen=D.tareas.filter(t=>!t.hecha),ven=pen.filter(t=>t.fecha<hoy).length;
+  $("#segRes").textContent=`${pen.length} pendientes, ${ven} vencidos. Agenda a quién llamar o invitar y márcalo como hecho al terminar.`;
+  $("#ls").innerHTML=pen.map(t=>`<tr><td>${fecha(t.fecha)}${t.fecha<hoy?" <b style='color:var(--bad)'>vencido</b>":""}</td><td>${esc(t.personaNombre)}<br>${wa(t.personaId,"Hola "+t.personaNombre+", te escribimos del Centro Nuevo Comienzo, Juventino Rosas.")}</td><td>${esc(t.texto)}</td><td><button data-a="hecho" data-id="${t.id}">Hecho</button></td></tr>`).join("")||`<tr><td colspan="4">Sin seguimientos pendientes.</td></tr>`;
 }
 $("#q").oninput=render;$("#selA").onchange=render;
 
 /* Altas */
 const name=id=>D.personas.find(p=>p.id===id)?.nombre||"";
-$("#fPer").onsubmit=async e=>{e.preventDefault();await addDoc(collection(db,"personas"),{...fd(e.target),seguimientos:[],creado:serverTimestamp()});e.target.reset();toast("Persona guardada")};
+$("#fPer").onsubmit=async e=>{e.preventDefault();await addDoc(collection(db,"personas"),{...fd(e.target),estatus:"Nuevo",seguimientos:[],creado:serverTimestamp()});e.target.reset();toast("Persona guardada")};
 $("#fAct").onsubmit=async e=>{e.preventDefault();const d=fd(e.target);await addDoc(collection(db,"actividades"),{...d,cupo:+d.cupo,costo:+d.costo,creado:serverTimestamp()});e.target.reset();toast("Actividad guardada")};
 $("#bIns").onclick=async()=>{
   const a=D.actividades.find(x=>x.id===$("#selA").value),p=$("#selP").value;
@@ -207,14 +227,19 @@ $("#bIns").onclick=async()=>{
   await addDoc(collection(db,"inscripciones"),{personaId:p,personaNombre:name(p),actividadId:a.id,actividadNombre:a.nombre,pagado:false,asistio:false,creado:serverTimestamp()});toast("Inscripción guardada")};
 $("#fPsi").onsubmit=async e=>{e.preventDefault();const d=fd(e.target);await addDoc(collection(db,"citasPsicologia"),{...d,personaNombre:name(d.personaId),estado:"Pendiente",creado:serverTimestamp()});e.target.reset();toast("Cita agendada")};
 
+$("#fSeg").onsubmit=async e=>{e.preventDefault();const d=fd(e.target);await addDoc(collection(db,"tareas"),{...d,personaNombre:name(d.personaId),hecha:false,creado:serverTimestamp()});e.target.reset();toast("Seguimiento agendado")};
+$("#bCsv").onclick=()=>{const f=[["Nombre","Teléfono","Grupo","Colonia","Cómo se enteró","Estatus"],...D.personas.map(p=>[p.nombre,p.telefono,p.grupo,p.colonia,p.origen,p.estatus||"Nuevo"])];const c=f.map(r=>r.map(x=>'"'+String(x??"").replace(/"/g,'""')+'"').join(",")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+c],{type:"text/csv"}));a.download="personas.csv";a.click()};
+
 /* Acciones de las tablas */
-const col={nota:"personas",delp:"personas",dela:"actividades",pag:"inscripciones",asi:"inscripciones",deli:"inscripciones",est:"citasPsicologia",delc:"citasPsicologia"};
+const col={nota:"personas",delp:"personas",dela:"actividades",pag:"inscripciones",asi:"inscripciones",deli:"inscripciones",est:"citasPsicologia",hecho:"tareas",estp:"personas",delc:"citasPsicologia"};
 async function act(el){
   const a=el.dataset.a,id=el.dataset.id;if(!a||!id)return;const r=doc(db,col[a],id);
   if(a==="nota"){const t=prompt("Nota de seguimiento:");if(t?.trim())await updateDoc(r,{seguimientos:arrayUnion({fecha:new Date().toISOString().slice(0,10),texto:t.trim(),autor:user.email})})}
   else if(a==="pag")await updateDoc(r,{pagado:el.checked});
   else if(a==="asi")await updateDoc(r,{asistio:el.checked});
   else if(a==="est")await updateDoc(r,{estado:el.value});
+  else if(a==="estp")await updateDoc(r,{estatus:el.value});
+  else if(a==="hecho")await updateDoc(r,{hecha:true});
   else if(confirm("¿Seguro que quieres eliminarlo? No se puede deshacer."))await deleteDoc(r);
 }
 document.addEventListener("click",e=>{const b=e.target.closest("button[data-a]");if(b)act(b)});
