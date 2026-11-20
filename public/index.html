@@ -37,6 +37,8 @@ td input[type=checkbox]{width:20px;height:20px}
 small{opacity:.75}
 #login{max-width:360px;margin:12vh auto;padding:24px;background:var(--card);border-radius:16px;border:1.5px solid var(--line)}
 #login form{flex-direction:column;align-items:stretch;background:none;padding:0}
+#login .g{width:100%;margin-top:12px;padding:10px 18px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font-weight:700;cursor:pointer}
+#login a{color:var(--blue)}
 #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:12px;display:none;max-width:90vw}
 #toast.bad{background:var(--bad)}
 [hidden]{display:none!important}
@@ -46,12 +48,18 @@ small{opacity:.75}
 
 <div id="login">
   <h2>Centro Nuevo Comienzo</h2>
-  <p class="h">Entra con tu correo del centro.</p>
+  <p class="h" id="lh">Entra con tu correo o con Google.</p>
   <form id="fLogin">
     <label>Correo<input type="email" id="em" required autocomplete="username"></label>
-    <label>Contraseña<input type="password" id="pw" required autocomplete="current-password"></label>
-    <button type="submit">Entrar</button>
+    <label>Contraseña<input type="password" id="pw" required minlength="6" autocomplete="current-password"></label>
+    <button type="submit" id="bLogin">Entrar</button>
   </form>
+  <button class="g" id="bGoogle" type="button">Continuar con Google</button>
+  <p id="sw"><a href="#" id="swap">¿Primera vez? Crea tu cuenta</a></p>
+  <div id="pend" hidden>
+    <p><b>Tu cuenta está pendiente.</b> Pide a administración que te asigne un rol y vuelve a entrar.</p>
+    <button class="btn" id="bOut2" type="button">Salir</button>
+  </div>
 </div>
 
 <div id="app" hidden>
@@ -120,8 +128,8 @@ small{opacity:.75}
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {getFirestore,collection,addDoc,doc,getDoc,updateDoc,deleteDoc,onSnapshot,query,orderBy,serverTimestamp,arrayUnion} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,GoogleAuthProvider,signInWithPopup,signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {getFirestore,collection,addDoc,doc,getDoc,setDoc,updateDoc,deleteDoc,onSnapshot,query,orderBy,serverTimestamp,arrayUnion} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 // 1) Pega aquí la configuración de tu proyecto (Firebase > Configuración del proyecto > Tus apps > Web)
 const firebaseConfig={apiKey:"AIzaSyD_aZituvCfHUWQ3ky-HZsFZTjdEGcCtjY",authDomain:"centro-nuevo-comienzo.firebaseapp.com",projectId:"centro-nuevo-comienzo",storageBucket:"centro-nuevo-comienzo.firebasestorage.app",messagingSenderId:"307808740949",appId:"1:307808740949:web:204945f471e32b709e56dc"};
@@ -139,13 +147,26 @@ const fd=f=>Object.fromEntries(new FormData(f));
 const fecha=s=>s?new Date(s+"T12:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"numeric"}):"";
 
 /* Sesión */
-$("#fLogin").onsubmit=async e=>{e.preventDefault();try{await signInWithEmailAndPassword(auth,$("#em").value,$("#pw").value)}catch{toast("Correo o contraseña incorrectos.",true)}};
-$("#out").onclick=()=>signOut(auth);
+let nuevo=false;
+const errs={"auth/email-already-in-use":"Ese correo ya tiene cuenta. Entra con tu contraseña.","auth/weak-password":"La contraseña debe tener al menos 6 caracteres.","auth/invalid-credential":"Correo o contraseña incorrectos.","auth/invalid-email":"Escribe un correo válido.","auth/network-request-failed":"Sin conexión. Intenta de nuevo."};
+const authErr=e=>{if(e.code!=="auth/popup-closed-by-user"&&e.code!=="auth/cancelled-popup-request")toast(errs[e.code]||"No se pudo entrar. Intenta de nuevo.",true)};
+$("#swap").onclick=e=>{e.preventDefault();nuevo=!nuevo;
+  $("#bLogin").textContent=nuevo?"Crear cuenta":"Entrar";
+  $("#swap").textContent=nuevo?"¿Ya tienes cuenta? Entra":"¿Primera vez? Crea tu cuenta";
+  $("#lh").textContent=nuevo?"Crea tu cuenta con tu correo o con Google.":"Entra con tu correo o con Google.";
+  $("#pw").autocomplete=nuevo?"new-password":"current-password"};
+$("#fLogin").onsubmit=async e=>{e.preventDefault();const em=$("#em").value,pw=$("#pw").value;
+  try{nuevo?await createUserWithEmailAndPassword(auth,em,pw):await signInWithEmailAndPassword(auth,em,pw)}catch(err){authErr(err)}};
+$("#bGoogle").onclick=async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(err){authErr(err)}};
+$("#out").onclick=$("#bOut2").onclick=()=>signOut(auth);
+function showLogin(pend){$("#login").hidden=false;$("#app").hidden=true;["#fLogin","#bGoogle","#sw","#lh"].forEach(x=>$(x).hidden=pend);$("#pend").hidden=!pend}
 onAuthStateChanged(auth,async u=>{
   unsubs.forEach(f=>f());unsubs=[];user=u;
-  if(!u){$("#login").hidden=false;$("#app").hidden=true;return}
-  const s=await getDoc(doc(db,"usuarios",u.uid));rol=s.exists()?s.data().rol:null;
-  if(!rol){toast("Tu usuario aún no tiene rol. Pide a administración que lo asigne.",true);signOut(auth);return}
+  if(!u){showLogin(false);return}
+  const r=doc(db,"usuarios",u.uid);let s=await getDoc(r);
+  if(!s.exists()){await setDoc(r,{rol:"pendiente",email:u.email,creado:serverTimestamp()});s=await getDoc(r)}
+  rol=s.data().rol;
+  if(!["admin","recepcion","psicologia"].includes(rol)){showLogin(true);return}
   $("#login").hidden=true;$("#app").hidden=false;$("#who").textContent=u.email+" ("+rol+")";
   const psi=["admin","psicologia"].includes(rol);$("#tPsi").hidden=!psi;
   sub("personas","nombre");sub("actividades","fecha");sub("inscripciones","creado");
