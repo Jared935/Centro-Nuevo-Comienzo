@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Centro Nuevo Comienzo, Juventino Rosas</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
@@ -32,7 +32,7 @@ main{max-width:1050px;margin:-52px auto 0;padding:0 18px 50px;position:relative;
 #chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 .chip{border:2px solid var(--cielo);background:#fff;border-radius:999px;padding:6px 16px;font-weight:700;color:var(--ink)}
 .chip.on{background:var(--rey);border-color:var(--rey);color:#fff}
-#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:16px}
 .card{display:flex;gap:14px;background:var(--cielo);border-radius:22px;padding:14px;align-items:stretch}
 .fecha{background:var(--c);color:var(--t);border-radius:18px;min-width:74px;display:flex;flex-direction:column;justify-content:center;align-items:center;font-family:Fredoka}
 .fecha b{font-size:2.1rem;line-height:1}.fecha span{font-size:1rem}
@@ -64,6 +64,27 @@ footer{text-align:center;padding:10px 20px 30px;font-size:.9rem;opacity:.8}
 label.ck{flex-direction:row;align-items:flex-start;gap:8px;font-weight:600;font-size:.85rem}
 label.ck input{width:20px;height:20px;padding:0;margin-top:2px}
 select{font:inherit;padding:10px 12px;border:2px solid var(--cielo);border-radius:12px;background:#fff}
+.fab{display:none;position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:8;background:var(--sol);color:var(--noche);border:0;border-radius:999px;padding:14px 22px;font:700 1rem Fredoka,Nunito,sans-serif;box-shadow:0 8px 20px #0f2a5c55}
+@media(max-width:640px){
+  .top{position:static;padding:calc(12px + env(safe-area-inset-top)) 14px 12px}
+  .acc{width:100%}
+  .acc span,#bPase{display:none}
+  .acc .b,.acc .b2{flex:1;text-align:center;font-size:.9rem;padding:10px}
+  .hero{padding:32px 18px 84px;border-radius:0 0 36px 36px}
+  .hero p{font-size:1.02rem}
+  main{padding:0 12px calc(100px + env(safe-area-inset-bottom));margin-top:-44px}
+  .panel{padding:16px;border-radius:22px}
+  #grid{grid-template-columns:1fr}
+  .card{padding:12px}
+  .fecha{min-width:64px}
+  .card .b{padding:10px 18px}
+  .mis{flex-direction:column;align-items:flex-start}
+  input,select{min-height:48px}
+  label.ck input{min-height:0}
+  dialog{width:100%;max-width:100%;margin:auto 0 0;border-radius:26px 26px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom));max-height:92vh}
+  .fab{display:block}
+  #toast{bottom:calc(84px + env(safe-area-inset-bottom));width:92vw;text-align:center}
+}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -129,6 +150,7 @@ select{font:inherit;padding:10px 12px;border:2px solid var(--cielo);border-radiu
   <p style="margin:0;font-size:.9rem">Muéstralo en la entrada para registrar tu asistencia rápido.</p>
   <p style="text-align:center;margin:14px 0 0"><a href="#" id="cQ">Cerrar</a></p>
 </dialog>
+<button class="fab" id="fab" type="button" hidden>Mi pase QR</button>
 <div id="toast" role="status"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -186,7 +208,7 @@ function render(){
     return `<article class="card"><div class="fecha" style="--c:${c[0]};--t:${c[1]}"><b>${d}</b><span>${m}</span></div><div class="info"><span class="tag">${esc(a.tipo)}</span><h3>${esc(a.nombre)}</h3><p>${esc(a.horario||"Horario por confirmar")}</p><div class="pie"><span class="precio">${a.costo>0?"$"+a.costo:"Gratis"}</span><a class="sh" href="${sh}" target="_blank" rel="noopener">Compartir</a>${s?`<button class="b" disabled>${s.estado==="Aprobada"?"Confirmada":"Solicitud enviada"}</button>`:`<button class="b" data-ins="${a.id}">Inscribirme</button>`}</div></div></article>`}).join("")||`<p class="vacio">Pronto habrá nuevas actividades. Vuelve a visitarnos.</p>`;
   const n=acts[0];$("#prox").innerHTML=n?`Sigue: <b>${esc(n.nombre)}</b>, ${dm(n.fecha).join(" de ")}`:"";
   $("#lasi").innerHTML=[...asis].sort((a,b)=>(b.fecha+b.hora).localeCompare(a.fecha+a.hora)).map(x=>`<div class="mis"><span><b>${esc(x.actividadNombre)}</b><br><small>${dm(x.fecha).join(" de ")}, ${esc(x.hora)}</small></span><span class="est" style="--e:#8fe3c9">Asististe</span></div>`).join("")||`<p class="vacio">Cuando registres tu asistencia con tu pase QR, aparecerá aquí.</p>`;
-  $("#mis").hidden=!user;
+  $("#mis").hidden=!user;$("#fab").hidden=!user;
   $("#lmis").innerHTML=[...sols].sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(s=>{const e=EST[s.estado]||EST.Pendiente;return `<div class="mis"><span><b>${esc(s.actividadNombre)}</b><br><small>${dm(s.fecha).join(" de ")}</small></span><span><span class="est" style="--e:${e[1]}">${e[0]}</span> <button class="b2" style="color:var(--rey)" data-ics="${s.id}">Agregar a mi calendario</button></span></div>`}).join("")||`<p class="vacio">Aún no te has inscrito a nada. Elige una actividad arriba.</p>`;
 }
 
@@ -238,7 +260,7 @@ document.addEventListener("click",e=>{
   else if(t.id==="bIn")$("#dAuth").showModal();
   else if(t.id==="bOut")signOut(auth);
   else if(t.id==="bPerf")abrirPerfil();
-  else if(t.id==="bPase")pase();
+  else if(t.id==="bPase"||t.id==="fab")pase();
   else if(t.dataset.ics)ics(t.dataset.ics);
 });
 </script>

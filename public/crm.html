@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>CRM Centro Nuevo Comienzo</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
@@ -56,6 +56,40 @@ dialog::backdrop{background:#0008}
 dialog h3{margin:14px 0 4px;font-size:1rem;color:var(--navy)}
 dialog p{margin:4px 0}
 #vid{width:100%;border-radius:12px;background:#000}
+input[type=checkbox]{min-height:0}
+@media(max-width:720px){
+  header{padding:calc(10px + env(safe-area-inset-top)) 14px 10px;gap:6px}
+  header h1{font-size:1rem;flex:1 1 100%}
+  header>span{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%}
+  header small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:64%}
+  nav{position:sticky;top:0;z-index:6;background:var(--bg);flex-wrap:nowrap;overflow-x:auto;padding:6px 6px 0;gap:0;scrollbar-width:none}
+  nav::-webkit-scrollbar{display:none}
+  nav button{flex:0 0 auto;padding:12px 14px;font-size:.95rem}
+  main{padding:14px 12px calc(40px + env(safe-area-inset-bottom))}
+  h2{font-size:1.15rem}
+  form,.bar{flex-direction:column;align-items:stretch;padding:12px}
+  label{flex:none}
+  input,select,textarea{min-height:46px}
+  .btn,form button[type=submit]{width:100%;min-height:46px}
+  .kp{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi b{font-size:1.6rem}
+  .dos{grid-template-columns:1fr}
+  .br{grid-template-columns:90px 1fr 26px}
+  .w{overflow:visible}
+  table,thead,tbody,tr,td{display:block;width:100%}
+  table{background:none}
+  thead{display:none}
+  tr{background:var(--card);border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;padding:6px 12px}
+  td{display:flex;justify-content:space-between;align-items:center;gap:12px;border:0;padding:7px 0;flex-wrap:wrap;text-align:right}
+  td::before{content:attr(data-label);font-weight:800;font-size:.75rem;opacity:.65;text-align:left;flex:0 0 34%}
+  td[data-label=""]::before,td:not([data-label])::before{display:none}
+  td[data-label=""]{justify-content:flex-start}
+  td:empty{display:none}
+  td button,td a{min-height:40px;display:inline-flex;align-items:center}
+  td select{width:auto;max-width:62%}
+  dialog{width:100%;max-width:100%;margin:auto 0 0;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
+  #toast{bottom:calc(14px + env(safe-area-inset-bottom));width:92vw;text-align:center}
+}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -248,6 +282,10 @@ const msgIns=i=>{const a=D.actividades.find(x=>x.id===i.actividadId)||{};return 
 
 const waTel=(t,msg)=>{t=(t||"").replace(/\D/g,"");if(!t)return "<small>Sin teléfono</small>";if(t.length===10)t="52"+t;return `<a href="https://wa.me/${t}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Enviar por WhatsApp</a>`};
 
+/* En el celular cada fila de las tablas se vuelve una tarjeta: se le pone a cada celda el nombre de su columna */
+function etiquetar(){$$("table").forEach(t=>{const h=[...t.querySelectorAll("thead th")].map(x=>x.textContent.trim());if(!h.length)return;
+  t.querySelectorAll("tbody tr").forEach(r=>[...r.children].forEach((c,i)=>{if(c.colSpan<2)c.dataset.label=h[i]||""}))})}
+
 /* Pintado */
 function render(){
   const q=$("#q").value.toLowerCase(),cnt=a=>D.inscripciones.filter(i=>i.actividadId===a).length;
@@ -282,6 +320,7 @@ function render(){
   $("#kas").innerHTML=[["Hoy",D.asistencias.filter(x=>x.fecha===hoy).length],["Últimos 7 días",D.asistencias.filter(x=>new Date(x.fecha+"T12:00").getTime()>sem).length],["Personas distintas (filtro)",new Set(rows.map(x=>x.personaId)).size],["Sin inscripción previa (filtro)",rows.filter(x=>!x.inscrita).length]].map(k=>`<div class="kpi"><b>${k[1]}</b><span>${k[0]}</span></div>`).join("");
   $("#lasi").innerHTML=rows.map(x=>`<tr><td>${fecha(x.fecha)}</td><td>${esc(x.hora)}</td><td><button class="lk" data-a="ficha" data-id="${x.personaId}">${esc(x.personaNombre)}</button></td><td>${esc(x.actividadNombre)}</td><td>${x.metodo==="QR"?"Pase QR":"A mano"}, por ${esc(x.registradoPor)}${x.inscrita?"":"<br><small>Sin inscripción previa</small>"}</td><td><button class="x" data-a="dela2" data-id="${x.id}">Eliminar</button></td></tr>`).join("")||`<tr><td colspan="6">Aún no hay asistencias en este filtro.</td></tr>`;
   if(fichaId&&$("#dF").open)pintaFicha();
+  etiquetar();
 }
 $("#q").oninput=render;$("#fe").onchange=$("#ad").onchange=$("#ah").onchange=$("#fa").onchange=render;$("#selA").onchange=render;
 
