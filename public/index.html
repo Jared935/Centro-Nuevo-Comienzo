@@ -59,6 +59,11 @@ dialog a{color:var(--rey);font-weight:700}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--noche);color:#fff;padding:12px 20px;border-radius:16px;display:none;max-width:90vw;z-index:20}
 #toast.bad{background:#b3392f}
 footer{text-align:center;padding:10px 20px 30px;font-size:.9rem;opacity:.8}
+#qr{display:flex;justify-content:center;margin:14px 0}
+.sh{font-weight:800;color:var(--rey);font-size:.9rem}
+label.ck{flex-direction:row;align-items:flex-start;gap:8px;font-weight:600;font-size:.85rem}
+label.ck input{width:20px;height:20px;padding:0;margin-top:2px}
+select{font:inherit;padding:10px 12px;border:2px solid var(--cielo);border-radius:12px;background:#fff}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -102,17 +107,29 @@ footer{text-align:center;padding:10px 20px 30px;font-size:.9rem;opacity:.8}
 
 <dialog id="dPerf">
   <h2>Tus datos</h2>
-  <p style="margin:0">Así te contactamos para confirmar tu inscripción.</p>
+  <p style="margin:0">Completa tus datos para quedar registrado en el centro y poder inscribirte a las actividades.</p>
   <form id="fPerf">
     <label>Nombre completo<input id="pn" required></label>
     <label>WhatsApp (10 dígitos)<input id="pt" required inputmode="tel" pattern="[0-9 ()+-]{10,16}"></label>
     <label>Colonia o comunidad<input id="pc"></label>
+    <label>Grupo<select id="pg"><option>Adulto</option><option>Joven</option><option>Niño o niña</option><option>Adulto mayor</option></select></label>
+    <label>¿Cómo te enteraste del centro?<select id="po"><option>Facebook</option><option>Referido</option><option>Volante o flyer</option><option>Pasó por el centro</option><option>Otro</option></select></label>
+    <label class="ck"><input type="checkbox" id="pk" required>Acepto que el centro guarde mis datos para contactarme sobre sus actividades.</label>
     <button class="b" type="submit">Guardar</button>
   </form>
   <p style="text-align:center;margin:14px 0 0"><a href="#" id="cP">Cancelar</a></p>
 </dialog>
+
+<dialog id="dQR">
+  <h2>Mi pase</h2>
+  <p style="margin:0" id="qn"></p>
+  <div id="qr"></div>
+  <p style="margin:0;font-size:.9rem">Muéstralo en la entrada para registrar tu asistencia rápido.</p>
+  <p style="text-align:center;margin:14px 0 0"><a href="#" id="cQ">Cerrar</a></p>
+</dialog>
 <div id="toast" role="status"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,GoogleAuthProvider,signInWithPopup,signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -141,6 +158,7 @@ onAuthStateChanged(auth,async u=>{
     const r=doc(db,"usuarios",u.uid);let s=await getDoc(r);
     if(!s.exists()){await setDoc(r,{rol:"usuario",email:u.email,nombre:u.displayName||"",creado:serverTimestamp()});s=await getDoc(r)}
     perfil=s.data();$("#dAuth").close();
+    if(!perfil.ficha&&!quiere)abrirPerfil();
     unS=onSnapshot(query(collection(db,"solicitudes"),where("uid","==",u.uid)),q=>{sols=q.docs.map(d=>({id:d.id,...d.data()}));render()});
     if(quiere){const q=quiere;quiere=null;await inscribir(q)}
   }
@@ -151,34 +169,50 @@ onAuthStateChanged(auth,async u=>{
 function render(){
   const staff=["admin","recepcion","psicologia"].includes(perfil?.rol);
   $("#acc").innerHTML=user
-    ?`<span>${esc(perfil?.nombre||user.email)}</span><button class="b2" id="bPerf">Mis datos</button>${staff?'<a class="b2" href="crm.html">Ir al CRM</a>':""}<button class="b2" id="bOut">Salir</button>`
+    ?`<span>${esc(perfil?.nombre||user.email)}</span><button class="b2" id="bPase">Mi pase QR</button><button class="b2" id="bPerf">Mis datos</button>${staff?'<a class="b2" href="crm.html">Ir al CRM</a>':""}<button class="b2" id="bOut">Salir</button>`
     :`<button class="b" id="bIn">Entrar o crear cuenta</button>`;
   const tipos=["Todas",...new Set(acts.map(a=>a.tipo))];
   $("#chips").innerHTML=tipos.map(t=>`<button class="chip ${t===filtro?"on":""}" data-t="${esc(t)}">${esc(t)}</button>`).join("");
   const sol=id=>sols.find(s=>s.actividadId===id);
   $("#grid").innerHTML=acts.filter(a=>filtro==="Todas"||a.tipo===filtro).map(a=>{
-    const [d,m]=dm(a.fecha),c=COL[a.tipo]||COL.Taller,s=sol(a.id);
-    return `<article class="card"><div class="fecha" style="--c:${c[0]};--t:${c[1]}"><b>${d}</b><span>${m}</span></div><div class="info"><span class="tag">${esc(a.tipo)}</span><h3>${esc(a.nombre)}</h3><p>${esc(a.horario||"Horario por confirmar")}</p><div class="pie"><span class="precio">${a.costo>0?"$"+a.costo:"Gratis"}</span>${s?`<button class="b" disabled>${s.estado==="Aprobada"?"Confirmada":"Solicitud enviada"}</button>`:`<button class="b" data-ins="${a.id}">Inscribirme</button>`}</div></div></article>`}).join("")||`<p class="vacio">Pronto habrá nuevas actividades. Vuelve a visitarnos.</p>`;
+    const [d,m]=dm(a.fecha),c=COL[a.tipo]||COL.Taller,s=sol(a.id),sh="https://wa.me/?text="+encodeURIComponent(`Te invito a ${a.nombre} el ${d} de ${m} en el Centro Nuevo Comienzo, Juventino Rosas. Inscríbete aquí: ${location.origin}`);
+    return `<article class="card"><div class="fecha" style="--c:${c[0]};--t:${c[1]}"><b>${d}</b><span>${m}</span></div><div class="info"><span class="tag">${esc(a.tipo)}</span><h3>${esc(a.nombre)}</h3><p>${esc(a.horario||"Horario por confirmar")}</p><div class="pie"><span class="precio">${a.costo>0?"$"+a.costo:"Gratis"}</span><a class="sh" href="${sh}" target="_blank" rel="noopener">Compartir</a>${s?`<button class="b" disabled>${s.estado==="Aprobada"?"Confirmada":"Solicitud enviada"}</button>`:`<button class="b" data-ins="${a.id}">Inscribirme</button>`}</div></div></article>`}).join("")||`<p class="vacio">Pronto habrá nuevas actividades. Vuelve a visitarnos.</p>`;
   const n=acts[0];$("#prox").innerHTML=n?`Sigue: <b>${esc(n.nombre)}</b>, ${dm(n.fecha).join(" de ")}`:"";
   $("#mis").hidden=!user;
-  $("#lmis").innerHTML=[...sols].sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(s=>{const e=EST[s.estado]||EST.Pendiente;return `<div class="mis"><span><b>${esc(s.actividadNombre)}</b><br><small>${dm(s.fecha).join(" de ")}</small></span><span class="est" style="--e:${e[1]}">${e[0]}</span></div>`}).join("")||`<p class="vacio">Aún no te has inscrito a nada. Elige una actividad arriba.</p>`;
+  $("#lmis").innerHTML=[...sols].sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(s=>{const e=EST[s.estado]||EST.Pendiente;return `<div class="mis"><span><b>${esc(s.actividadNombre)}</b><br><small>${dm(s.fecha).join(" de ")}</small></span><span><span class="est" style="--e:${e[1]}">${e[0]}</span> <button class="b2" style="color:var(--rey)" data-ics="${s.id}">Agregar a mi calendario</button></span></div>`}).join("")||`<p class="vacio">Aún no te has inscrito a nada. Elige una actividad arriba.</p>`;
 }
 
 /* Inscripción: llega al centro como solicitud y el personal la confirma */
 async function inscribir(id){
   if(!user){quiere=id;$("#dAuth").showModal();return}
-  if(!perfil?.nombre||!perfil?.telefono){quiere=id;abrirPerfil();return}
+  if(!perfil?.ficha||!perfil?.telefono){quiere=id;abrirPerfil();return}
   const a=acts.find(x=>x.id===id);if(!a||sols.some(s=>s.actividadId===id))return;
   try{
     await setDoc(doc(db,"solicitudes",user.uid+"_"+id),{uid:user.uid,nombre:perfil.nombre,telefono:perfil.telefono,colonia:perfil.colonia||"",actividadId:id,actividadNombre:a.nombre,fecha:a.fecha,estado:"Pendiente",creado:serverTimestamp()});
     toast("¡Listo! Tu solicitud llegó al centro. Te confirmarán por WhatsApp.");
   }catch(e){toast(e.code==="permission-denied"?"Ya enviaste tu solicitud para esta actividad.":"No se pudo enviar. Intenta de nuevo.",true)}
 }
-function abrirPerfil(){$("#pn").value=perfil?.nombre||"";$("#pt").value=perfil?.telefono||"";$("#pc").value=perfil?.colonia||"";$("#dPerf").showModal()}
+function abrirPerfil(){$("#pn").value=perfil?.nombre||"";$("#pt").value=perfil?.telefono||"";$("#pc").value=perfil?.colonia||"";$("#pg").value=perfil?.grupo||"Adulto";$("#po").value=perfil?.origen||"Facebook";$("#pk").checked=!!perfil?.ficha;$("#dPerf").showModal()}
+/* Al guardar tus datos, tu ficha se crea sola en el CRM del centro (personas/tu-id) */
 $("#fPerf").onsubmit=async e=>{e.preventDefault();
-  const d={nombre:$("#pn").value.trim(),telefono:$("#pt").value.trim(),colonia:$("#pc").value.trim()};
-  await updateDoc(doc(db,"usuarios",user.uid),d);perfil={...perfil,...d};$("#dPerf").close();render();toast("Datos guardados");
+  const d={nombre:$("#pn").value.trim(),telefono:$("#pt").value.trim(),colonia:$("#pc").value.trim(),grupo:$("#pg").value,origen:$("#po").value};
+  if(!perfil.ficha)await setDoc(doc(db,"personas",user.uid),{...d,email:user.email,uid:user.uid,registro:"Portal",estatus:"Nuevo",seguimientos:[],consentimiento:serverTimestamp(),creado:serverTimestamp()});
+  else await updateDoc(doc(db,"personas",user.uid),d);
+  await updateDoc(doc(db,"usuarios",user.uid),{...d,ficha:true});
+  perfil={...perfil,...d,ficha:true};$("#dPerf").close();render();toast("Datos guardados");
   if(quiere){const q=quiere;quiere=null;await inscribir(q)}};
+
+/* Pase QR para registrar asistencia en la entrada */
+function pase(){
+  if(!perfil?.ficha){abrirPerfil();return}
+  $("#qn").textContent=perfil.nombre;$("#qr").innerHTML="";new QRCode($("#qr"),{text:user.uid,width:220,height:220});$("#dQR").showModal()}
+$("#cQ").onclick=e=>{e.preventDefault();$("#dQR").close()};
+
+/* Agregar la actividad al calendario del celular (.ics) */
+function ics(id){
+  const x=sols.find(y=>y.id===id);if(!x)return;const a=acts.find(y=>y.id===x.actividadId)||{};
+  const t=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Centro Nuevo Comienzo//ES","BEGIN:VEVENT","UID:"+id+"@centronuevocomienzo","DTSTAMP:"+new Date().toISOString().replace(/[-:]|\.\d+/g,""),"DTSTART;VALUE=DATE:"+x.fecha.replace(/-/g,""),"SUMMARY:"+x.actividadNombre,"LOCATION:Centro Nuevo Comienzo, Juventino Rosas","DESCRIPTION:"+(a.horario||"Horario por confirmar"),"END:VEVENT","END:VCALENDAR"].join("\r\n");
+  const l=document.createElement("a");l.href=URL.createObjectURL(new Blob([t],{type:"text/calendar"}));l.download="actividad.ics";l.click()}
 
 /* Acceso */
 const errs={"auth/email-already-in-use":"Ese correo ya tiene cuenta. Entra con tu contraseña.","auth/weak-password":"La contraseña debe tener al menos 6 caracteres.","auth/invalid-credential":"Correo o contraseña incorrectos.","auth/invalid-email":"Escribe un correo válido."};
@@ -196,6 +230,8 @@ document.addEventListener("click",e=>{
   else if(t.id==="bIn")$("#dAuth").showModal();
   else if(t.id==="bOut")signOut(auth);
   else if(t.id==="bPerf")abrirPerfil();
+  else if(t.id==="bPase")pase();
+  else if(t.dataset.ics)ics(t.dataset.ics);
 });
 </script>
 </body>
