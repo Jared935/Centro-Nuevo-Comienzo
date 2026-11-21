@@ -89,6 +89,8 @@ select{font:inherit;padding:10px 12px;border:2px solid var(--cielo);border-radiu
   <section class="panel" id="mis" hidden>
     <h2>Mis solicitudes</h2>
     <div id="lmis"></div>
+    <h2 style="margin-top:22px">Mi asistencia</h2>
+    <div id="lasi"></div>
   </section>
 </main>
 <footer>Centro Nuevo Comienzo, Juventino Rosas. Al registrarte aceptas que usemos tus datos solo para contactarte sobre tus actividades.</footer>
@@ -143,7 +145,7 @@ const COL={"Taller":["var(--coral)","#fff"],"Clase semanal":["var(--menta)","#ff
 const EST={Pendiente:["En revisión","var(--sol)"],Aprobada:["Confirmada","#8fe3c9"],Rechazada:["No confirmada","#ffb3a8"]};
 const hoy=new Date().toLocaleDateString("en-CA");
 const dm=f=>{const d=new Date(f+"T12:00");return [d.getDate(),d.toLocaleDateString("es-MX",{month:"short"}).replace(".","")]};
-let user=null,perfil=null,acts=[],sols=[],filtro="Todas",quiere=null,unS=null,nuevo=false;
+let user=null,perfil=null,acts=[],sols=[],asis=[],unA=null,filtro="Todas",quiere=null,unS=null,nuevo=false;
 
 function toast(m,bad){const t=$("#toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",4200)}
 window.addEventListener("unhandledrejection",e=>toast("No se pudo completar. Intenta de nuevo.",true));
@@ -153,13 +155,18 @@ onSnapshot(query(collection(db,"actividades"),where("fecha",">=",hoy),orderBy("f
 
 /* Sesión: el rol "usuario" se crea solo la primera vez */
 onAuthStateChanged(auth,async u=>{
-  user=u;unS&&unS();unS=null;sols=[];perfil=null;
+  user=u;unS&&unS();unS=null;unA&&unA();unA=null;sols=[];asis=[];perfil=null;
   if(u){
     const r=doc(db,"usuarios",u.uid);let s=await getDoc(r);
     if(!s.exists()){await setDoc(r,{rol:"usuario",email:u.email,nombre:u.displayName||"",creado:serverTimestamp()});s=await getDoc(r)}
     perfil=s.data();$("#dAuth").close();
     if(!perfil.ficha&&!quiere)abrirPerfil();
     unS=onSnapshot(query(collection(db,"solicitudes"),where("uid","==",u.uid)),q=>{sols=q.docs.map(d=>({id:d.id,...d.data()}));render()});
+    let primera=true;
+    unA=onSnapshot(query(collection(db,"asistencias"),where("personaId","==",u.uid)),q=>{
+      asis=q.docs.map(d=>({id:d.id,...d.data()}));
+      if(!primera)q.docChanges().forEach(c=>{if(c.type==="added")toast("¡Tu asistencia quedó registrada en "+c.doc.data().actividadNombre+"!")});
+      primera=false;render()});
     if(quiere){const q=quiere;quiere=null;await inscribir(q)}
   }
   render();
@@ -178,6 +185,7 @@ function render(){
     const [d,m]=dm(a.fecha),c=COL[a.tipo]||COL.Taller,s=sol(a.id),sh="https://wa.me/?text="+encodeURIComponent(`Te invito a ${a.nombre} el ${d} de ${m} en el Centro Nuevo Comienzo, Juventino Rosas. Inscríbete aquí: ${location.origin}`);
     return `<article class="card"><div class="fecha" style="--c:${c[0]};--t:${c[1]}"><b>${d}</b><span>${m}</span></div><div class="info"><span class="tag">${esc(a.tipo)}</span><h3>${esc(a.nombre)}</h3><p>${esc(a.horario||"Horario por confirmar")}</p><div class="pie"><span class="precio">${a.costo>0?"$"+a.costo:"Gratis"}</span><a class="sh" href="${sh}" target="_blank" rel="noopener">Compartir</a>${s?`<button class="b" disabled>${s.estado==="Aprobada"?"Confirmada":"Solicitud enviada"}</button>`:`<button class="b" data-ins="${a.id}">Inscribirme</button>`}</div></div></article>`}).join("")||`<p class="vacio">Pronto habrá nuevas actividades. Vuelve a visitarnos.</p>`;
   const n=acts[0];$("#prox").innerHTML=n?`Sigue: <b>${esc(n.nombre)}</b>, ${dm(n.fecha).join(" de ")}`:"";
+  $("#lasi").innerHTML=[...asis].sort((a,b)=>(b.fecha+b.hora).localeCompare(a.fecha+a.hora)).map(x=>`<div class="mis"><span><b>${esc(x.actividadNombre)}</b><br><small>${dm(x.fecha).join(" de ")}, ${esc(x.hora)}</small></span><span class="est" style="--e:#8fe3c9">Asististe</span></div>`).join("")||`<p class="vacio">Cuando registres tu asistencia con tu pase QR, aparecerá aquí.</p>`;
   $("#mis").hidden=!user;
   $("#lmis").innerHTML=[...sols].sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(s=>{const e=EST[s.estado]||EST.Pendiente;return `<div class="mis"><span><b>${esc(s.actividadNombre)}</b><br><small>${dm(s.fecha).join(" de ")}</small></span><span><span class="est" style="--e:${e[1]}">${e[0]}</span> <button class="b2" style="color:var(--rey)" data-ics="${s.id}">Agregar a mi calendario</button></span></div>`}).join("")||`<p class="vacio">Aún no te has inscrito a nada. Elige una actividad arriba.</p>`;
 }
@@ -205,7 +213,7 @@ $("#fPerf").onsubmit=async e=>{e.preventDefault();
 /* Pase QR para registrar asistencia en la entrada */
 function pase(){
   if(!perfil?.ficha){abrirPerfil();return}
-  $("#qn").textContent=perfil.nombre;$("#qr").innerHTML="";new QRCode($("#qr"),{text:user.uid,width:220,height:220});$("#dQR").showModal()}
+  $("#qn").textContent=perfil.nombre+", "+asis.length+(asis.length===1?" asistencia":" asistencias");$("#qr").innerHTML="";new QRCode($("#qr"),{text:"NC:"+user.uid,width:220,height:220});$("#dQR").showModal()}
 $("#cQ").onclick=e=>{e.preventDefault();$("#dQR").close()};
 
 /* Agregar la actividad al calendario del celular (.ics) */
