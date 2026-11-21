@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Centro Nuevo Comienzo, Juventino Rosas</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--cielo:#d9ecfb;--rey:#1b4fa8;--noche:#0f2a5c;--sol:#ffc531;--coral:#ff6a55;--menta:#1f9d83;--uva:#7a4fd0;--ink:#16243d;--bg:#f1f8ff}
+*{box-sizing:border-box}
+body{margin:0;font:17px/1.5 Nunito,system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+h1,h2,h3{font-family:Fredoka,Nunito,sans-serif;margin:0;line-height:1.1}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 22px;background:var(--noche);color:#fff;position:sticky;top:0;z-index:5}
+.top b{font:700 1.2rem Fredoka}.top small{opacity:.8;display:block;font-size:.8rem;margin-top:-2px}
+.acc{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.acc span{font-size:.85rem;opacity:.85}
+button,.btn{font:inherit;cursor:pointer}
+.b{background:var(--sol);color:var(--noche);border:0;border-radius:999px;padding:9px 20px;font-weight:800;text-decoration:none;display:inline-block}
+.b2{background:none;color:inherit;border:1.5px solid currentColor;border-radius:999px;padding:7px 16px;font-weight:700;text-decoration:none;font-size:.9rem}
+:focus-visible{outline:3px solid var(--sol);outline-offset:2px}
+.hero{background:var(--rey);color:#fff;padding:54px 22px 100px;position:relative;overflow:hidden;border-radius:0 0 56px 56px}
+.hero::before{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:#2f70d8;right:-110px;top:-150px}
+.hero::after{content:"";position:absolute;width:210px;height:210px;border-radius:50%;background:var(--sol);left:-80px;bottom:-100px}
+.hero>div{position:relative;z-index:1;max-width:1050px;margin:auto}
+.hero h1{font-size:clamp(2.2rem,7vw,3.9rem);font-weight:700;max-width:14em}
+.hero p{max-width:34em;font-size:1.15rem;margin:14px 0 22px}
+#prox{display:inline-block;background:#fff;color:var(--noche);border-radius:16px;padding:8px 16px;margin-bottom:18px;transform:rotate(-1.5deg);font-weight:600}
+#prox:empty{display:none}
+main{max-width:1050px;margin:-52px auto 0;padding:0 18px 50px;position:relative;z-index:2}
+.panel{background:#fff;border-radius:28px;padding:22px;box-shadow:0 10px 30px #1b4fa826;margin-bottom:26px}
+.panel h2{font-size:1.7rem;color:var(--noche);margin-bottom:12px}
+#chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{border:2px solid var(--cielo);background:#fff;border-radius:999px;padding:6px 16px;font-weight:700;color:var(--ink)}
+.chip.on{background:var(--rey);border-color:var(--rey);color:#fff}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px}
+.card{display:flex;gap:14px;background:var(--cielo);border-radius:22px;padding:14px;align-items:stretch}
+.fecha{background:var(--c);color:var(--t);border-radius:18px;min-width:74px;display:flex;flex-direction:column;justify-content:center;align-items:center;font-family:Fredoka}
+.fecha b{font-size:2.1rem;line-height:1}.fecha span{font-size:1rem}
+.info{flex:1;display:flex;flex-direction:column;gap:6px}
+.info h3{font-size:1.2rem;color:var(--noche)}
+.tag{font-size:.8rem;font-weight:800;color:var(--rey)}
+.info p{margin:0;font-size:.95rem}
+.pie{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;flex-wrap:wrap}
+.precio{font-weight:800;background:#fff;border-radius:999px;padding:2px 12px}
+.card .b{background:var(--noche);color:#fff;padding:7px 16px}
+.card .b[disabled]{background:#fff;color:var(--noche);cursor:default}
+.vacio{padding:20px;text-align:center}
+.mis{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 0;border-bottom:2px dashed var(--cielo);flex-wrap:wrap}
+.est{border-radius:999px;padding:3px 14px;font-weight:800;font-size:.85rem;background:var(--e);color:var(--ink)}
+dialog{border:0;border-radius:26px;padding:26px;max-width:380px;width:92vw;color:var(--ink)}
+dialog::backdrop{background:#0f2a5ccc}
+dialog h2{color:var(--noche);margin-bottom:6px}
+dialog form{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+label{display:flex;flex-direction:column;font-weight:700;font-size:.9rem;gap:3px}
+input{font:inherit;padding:10px 12px;border:2px solid var(--cielo);border-radius:12px}
+dialog .b{background:var(--rey);color:#fff;width:100%}
+dialog .g{background:#fff;color:var(--ink);border:2px solid var(--cielo);width:100%;border-radius:999px;padding:9px;font-weight:700;margin-top:10px}
+dialog a{color:var(--rey);font-weight:700}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--noche);color:#fff;padding:12px 20px;border-radius:16px;display:none;max-width:90vw;z-index:20}
+#toast.bad{background:#b3392f}
+footer{text-align:center;padding:10px 20px 30px;font-size:.9rem;opacity:.8}
+#qr{display:flex;justify-content:center;margin:14px 0}
+.sh{font-weight:800;color:var(--rey);font-size:.9rem}
+label.ck{flex-direction:row;align-items:flex-start;gap:8px;font-weight:600;font-size:.85rem}
+label.ck input{width:20px;height:20px;padding:0;margin-top:2px}
+select{font:inherit;padding:10px 12px;border:2px solid var(--cielo);border-radius:12px;background:#fff}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="top">
+  <div><b>Centro Nuevo Comienzo</b><small>Juventino Rosas, Guanajuato</small></div>
+  <div class="acc" id="acc"></div>
+</header>
+
+<section class="hero"><div>
+  <div id="prox"></div>
+  <h1>Aprende, convive y crece con tu comunidad</h1>
+  <p>Talleres, clases y encuentros para toda la familia. Elige tu actividad y mándanos tu solicitud en un minuto.</p>
+  <a class="b" href="#actividades">Ver actividades</a>
+</div></section>
+
+<main>
+  <section class="panel" id="actividades">
+    <h2>Próximas actividades</h2>
+    <div id="chips"></div>
+    <div id="grid"></div>
+  </section>
+  <section class="panel" id="mis" hidden>
+    <h2>Mis solicitudes</h2>
+    <div id="lmis"></div>
+    <h2 style="margin-top:22px">Mi asistencia</h2>
+    <div id="lasi"></div>
+  </section>
+</main>
+<footer>Centro Nuevo Comienzo, Juventino Rosas. Al registrarte aceptas que usemos tus datos solo para contactarte sobre tus actividades.</footer>
+
+<dialog id="dAuth">
+  <h2 id="at">Entra a tu cuenta</h2>
+  <p id="ah" style="margin:0">Para inscribirte necesitas una cuenta gratuita.</p>
+  <form id="fAuth">
+    <label>Correo<input type="email" id="em" required autocomplete="username"></label>
+    <label>Contraseña<input type="password" id="pw" required minlength="6" autocomplete="current-password"></label>
+    <button class="b" id="bA" type="submit">Entrar</button>
+  </form>
+  <button class="g" id="bG" type="button">Continuar con Google</button>
+  <p style="text-align:center;margin:14px 0 0"><a href="#" id="swap">¿Primera vez? Crea tu cuenta</a> <br><a href="#" id="cA">Cancelar</a></p>
+</dialog>
+
+<dialog id="dPerf">
+  <h2>Tus datos</h2>
+  <p style="margin:0">Completa tus datos para quedar registrado en el centro y poder inscribirte a las actividades.</p>
+  <form id="fPerf">
+    <label>Nombre completo<input id="pn" required></label>
+    <label>WhatsApp (10 dígitos)<input id="pt" required inputmode="tel" pattern="[0-9 ()+-]{10,16}"></label>
+    <label>Colonia o comunidad<input id="pc"></label>
+    <label>Grupo<select id="pg"><option>Adulto</option><option>Joven</option><option>Niño o niña</option><option>Adulto mayor</option></select></label>
+    <label>¿Cómo te enteraste del centro?<select id="po"><option>Facebook</option><option>Referido</option><option>Volante o flyer</option><option>Pasó por el centro</option><option>Otro</option></select></label>
+    <label class="ck"><input type="checkbox" id="pk" required>Acepto que el centro guarde mis datos para contactarme sobre sus actividades.</label>
+    <button class="b" type="submit">Guardar</button>
+  </form>
+  <p style="text-align:center;margin:14px 0 0"><a href="#" id="cP">Cancelar</a></p>
+</dialog>
+
+<dialog id="dQR">
+  <h2>Mi pase</h2>
+  <p style="margin:0" id="qn"></p>
+  <div id="qr"></div>
+  <p style="margin:0;font-size:.9rem">Muéstralo en la entrada para registrar tu asistencia rápido.</p>
+  <p style="text-align:center;margin:14px 0 0"><a href="#" id="cQ">Cerrar</a></p>
+</dialog>
+<div id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,GoogleAuthProvider,signInWithPopup,signOut} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import {getFirestore,collection,doc,getDoc,setDoc,updateDoc,onSnapshot,query,where,orderBy,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+const firebaseConfig={apiKey:"AIzaSyD_aZituvCfHUWQ3ky-HZsFZTjdEGcCtjY",authDomain:"centro-nuevo-comienzo.firebaseapp.com",projectId:"centro-nuevo-comienzo",storageBucket:"centro-nuevo-comienzo.firebasestorage.app",messagingSenderId:"307808740949",appId:"1:307808740949:web:204945f471e32b709e56dc"};
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+const $=s=>document.querySelector(s);
+const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const COL={"Taller":["var(--coral)","#fff"],"Clase semanal":["var(--menta)","#fff"],"Evento":["var(--sol)","var(--noche)"],"Encuentro":["var(--uva)","#fff"],"Prepa":["var(--rey)","#fff"]};
+const EST={Pendiente:["En revisión","var(--sol)"],Aprobada:["Confirmada","#8fe3c9"],Rechazada:["No confirmada","#ffb3a8"]};
+const hoy=new Date().toLocaleDateString("en-CA");
+const dm=f=>{const d=new Date(f+"T12:00");return [d.getDate(),d.toLocaleDateString("es-MX",{month:"short"}).replace(".","")]};
+let user=null,perfil=null,acts=[],sols=[],asis=[],unA=null,filtro="Todas",quiere=null,unS=null,nuevo=false;
+
+function toast(m,bad){const t=$("#toast");t.textContent=m;t.className=bad?"bad":"";t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",4200)}
+window.addEventListener("unhandledrejection",e=>toast("No se pudo completar. Intenta de nuevo.",true));
+
+/* Actividades públicas */
+onSnapshot(query(collection(db,"actividades"),where("fecha",">=",hoy),orderBy("fecha")),s=>{acts=s.docs.map(d=>({id:d.id,...d.data()}));render()},()=>toast("No pudimos cargar las actividades.",true));
+
+/* Sesión: el rol "usuario" se crea solo la primera vez */
+onAuthStateChanged(auth,async u=>{
+  user=u;unS&&unS();unS=null;unA&&unA();unA=null;sols=[];asis=[];perfil=null;
+  if(u){
+    const r=doc(db,"usuarios",u.uid);let s=await getDoc(r);
+    if(!s.exists()){await setDoc(r,{rol:"usuario",email:u.email,nombre:u.displayName||"",creado:serverTimestamp()});s=await getDoc(r)}
+    perfil=s.data();$("#dAuth").close();
+    if(!perfil.ficha&&!quiere)abrirPerfil();
+    unS=onSnapshot(query(collection(db,"solicitudes"),where("uid","==",u.uid)),q=>{sols=q.docs.map(d=>({id:d.id,...d.data()}));render()});
+    let primera=true;
+    unA=onSnapshot(query(collection(db,"asistencias"),where("personaId","==",u.uid)),q=>{
+      asis=q.docs.map(d=>({id:d.id,...d.data()}));
+      if(!primera)q.docChanges().forEach(c=>{if(c.type==="added")toast("¡Tu asistencia quedó registrada en "+c.doc.data().actividadNombre+"!")});
+      primera=false;render()});
+    if(quiere){const q=quiere;quiere=null;await inscribir(q)}
+  }
+  render();
+});
+
+/* Pintado */
+function render(){
+  const staff=["admin","recepcion","psicologia"].includes(perfil?.rol);
+  $("#acc").innerHTML=user
+    ?`<span>${esc(perfil?.nombre||user.email)}</span><button class="b2" id="bPase">Mi pase QR</button><button class="b2" id="bPerf">Mis datos</button>${staff?'<a class="b2" href="crm.html">Ir al CRM</a>':""}<button class="b2" id="bOut">Salir</button>`
+    :`<button class="b" id="bIn">Entrar o crear cuenta</button>`;
+  const tipos=["Todas",...new Set(acts.map(a=>a.tipo))];
+  $("#chips").innerHTML=tipos.map(t=>`<button class="chip ${t===filtro?"on":""}" data-t="${esc(t)}">${esc(t)}</button>`).join("");
+  const sol=id=>sols.find(s=>s.actividadId===id);
+  $("#grid").innerHTML=acts.filter(a=>filtro==="Todas"||a.tipo===filtro).map(a=>{
+    const [d,m]=dm(a.fecha),c=COL[a.tipo]||COL.Taller,s=sol(a.id),sh="https://wa.me/?text="+encodeURIComponent(`Te invito a ${a.nombre} el ${d} de ${m} en el Centro Nuevo Comienzo, Juventino Rosas. Inscríbete aquí: ${location.origin}`);
+    return `<article class="card"><div class="fecha" style="--c:${c[0]};--t:${c[1]}"><b>${d}</b><span>${m}</span></div><div class="info"><span class="tag">${esc(a.tipo)}</span><h3>${esc(a.nombre)}</h3><p>${esc(a.horario||"Horario por confirmar")}</p><div class="pie"><span class="precio">${a.costo>0?"$"+a.costo:"Gratis"}</span><a class="sh" href="${sh}" target="_blank" rel="noopener">Compartir</a>${s?`<button class="b" disabled>${s.estado==="Aprobada"?"Confirmada":"Solicitud enviada"}</button>`:`<button class="b" data-ins="${a.id}">Inscribirme</button>`}</div></div></article>`}).join("")||`<p class="vacio">Pronto habrá nuevas actividades. Vuelve a visitarnos.</p>`;
+  const n=acts[0];$("#prox").innerHTML=n?`Sigue: <b>${esc(n.nombre)}</b>, ${dm(n.fecha).join(" de ")}`:"";
+  $("#lasi").innerHTML=[...asis].sort((a,b)=>(b.fecha+b.hora).localeCompare(a.fecha+a.hora)).map(x=>`<div class="mis"><span><b>${esc(x.actividadNombre)}</b><br><small>${dm(x.fecha).join(" de ")}, ${esc(x.hora)}</small></span><span class="est" style="--e:#8fe3c9">Asististe</span></div>`).join("")||`<p class="vacio">Cuando registres tu asistencia con tu pase QR, aparecerá aquí.</p>`;
+  $("#mis").hidden=!user;
+  $("#lmis").innerHTML=[...sols].sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||"")).map(s=>{const e=EST[s.estado]||EST.Pendiente;return `<div class="mis"><span><b>${esc(s.actividadNombre)}</b><br><small>${dm(s.fecha).join(" de ")}</small></span><span><span class="est" style="--e:${e[1]}">${e[0]}</span> <button class="b2" style="color:var(--rey)" data-ics="${s.id}">Agregar a mi calendario</button></span></div>`}).join("")||`<p class="vacio">Aún no te has inscrito a nada. Elige una actividad arriba.</p>`;
+}
+
+/* Inscripción: llega al centro como solicitud y el personal la confirma */
+async function inscribir(id){
+  if(!user){quiere=id;$("#dAuth").showModal();return}
+  if(!perfil?.ficha||!perfil?.telefono){quiere=id;abrirPerfil();return}
+  const a=acts.find(x=>x.id===id);if(!a||sols.some(s=>s.actividadId===id))return;
+  try{
+    await setDoc(doc(db,"solicitudes",user.uid+"_"+id),{uid:user.uid,nombre:perfil.nombre,telefono:perfil.telefono,colonia:perfil.colonia||"",actividadId:id,actividadNombre:a.nombre,fecha:a.fecha,estado:"Pendiente",creado:serverTimestamp()});
+    toast("¡Listo! Tu solicitud llegó al centro. Te confirmarán por WhatsApp.");
+  }catch(e){toast(e.code==="permission-denied"?"Ya enviaste tu solicitud para esta actividad.":"No se pudo enviar. Intenta de nuevo.",true)}
+}
+function abrirPerfil(){$("#pn").value=perfil?.nombre||"";$("#pt").value=perfil?.telefono||"";$("#pc").value=perfil?.colonia||"";$("#pg").value=perfil?.grupo||"Adulto";$("#po").value=perfil?.origen||"Facebook";$("#pk").checked=!!perfil?.ficha;$("#dPerf").showModal()}
+/* Al guardar tus datos, tu ficha se crea sola en el CRM del centro (personas/tu-id) */
+$("#fPerf").onsubmit=async e=>{e.preventDefault();
+  const d={nombre:$("#pn").value.trim(),telefono:$("#pt").value.trim(),colonia:$("#pc").value.trim(),grupo:$("#pg").value,origen:$("#po").value};
+  if(!perfil.ficha)await setDoc(doc(db,"personas",user.uid),{...d,email:user.email,uid:user.uid,registro:"Portal",estatus:"Nuevo",seguimientos:[],consentimiento:serverTimestamp(),creado:serverTimestamp()});
+  else await updateDoc(doc(db,"personas",user.uid),d);
+  await updateDoc(doc(db,"usuarios",user.uid),{...d,ficha:true});
+  perfil={...perfil,...d,ficha:true};$("#dPerf").close();render();toast("Datos guardados");
+  if(quiere){const q=quiere;quiere=null;await inscribir(q)}};
+
+/* Pase QR para registrar asistencia en la entrada */
+function pase(){
+  if(!perfil?.ficha){abrirPerfil();return}
+  $("#qn").textContent=perfil.nombre+", "+asis.length+(asis.length===1?" asistencia":" asistencias");$("#qr").innerHTML="";new QRCode($("#qr"),{text:"NC:"+user.uid,width:220,height:220});$("#dQR").showModal()}
+$("#cQ").onclick=e=>{e.preventDefault();$("#dQR").close()};
+
+/* Agregar la actividad al calendario del celular (.ics) */
+function ics(id){
+  const x=sols.find(y=>y.id===id);if(!x)return;const a=acts.find(y=>y.id===x.actividadId)||{};
+  const t=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Centro Nuevo Comienzo//ES","BEGIN:VEVENT","UID:"+id+"@centronuevocomienzo","DTSTAMP:"+new Date().toISOString().replace(/[-:]|\.\d+/g,""),"DTSTART;VALUE=DATE:"+x.fecha.replace(/-/g,""),"SUMMARY:"+x.actividadNombre,"LOCATION:Centro Nuevo Comienzo, Juventino Rosas","DESCRIPTION:"+(a.horario||"Horario por confirmar"),"END:VEVENT","END:VCALENDAR"].join("\r\n");
+  const l=document.createElement("a");l.href=URL.createObjectURL(new Blob([t],{type:"text/calendar"}));l.download="actividad.ics";l.click()}
+
+/* Acceso */
+const errs={"auth/email-already-in-use":"Ese correo ya tiene cuenta. Entra con tu contraseña.","auth/weak-password":"La contraseña debe tener al menos 6 caracteres.","auth/invalid-credential":"Correo o contraseña incorrectos.","auth/invalid-email":"Escribe un correo válido."};
+const authErr=e=>{if(!/popup-closed|cancelled-popup/.test(e.code))toast(errs[e.code]||"No se pudo entrar. Intenta de nuevo.",true)};
+$("#fAuth").onsubmit=async e=>{e.preventDefault();const m=$("#em").value,p=$("#pw").value;try{nuevo?await createUserWithEmailAndPassword(auth,m,p):await signInWithEmailAndPassword(auth,m,p)}catch(x){authErr(x)}};
+$("#bG").onclick=async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(x){authErr(x)}};
+$("#swap").onclick=e=>{e.preventDefault();nuevo=!nuevo;$("#at").textContent=nuevo?"Crea tu cuenta":"Entra a tu cuenta";$("#bA").textContent=nuevo?"Crear cuenta":"Entrar";$("#swap").textContent=nuevo?"¿Ya tienes cuenta? Entra":"¿Primera vez? Crea tu cuenta";$("#pw").autocomplete=nuevo?"new-password":"current-password"};
+$("#cA").onclick=e=>{e.preventDefault();quiere=null;$("#dAuth").close()};
+$("#cP").onclick=e=>{e.preventDefault();quiere=null;$("#dPerf").close()};
+
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button");if(!t)return;
+  if(t.dataset.ins)inscribir(t.dataset.ins);
+  else if(t.dataset.t){filtro=t.dataset.t;render()}
+  else if(t.id==="bIn")$("#dAuth").showModal();
+  else if(t.id==="bOut")signOut(auth);
+  else if(t.id==="bPerf")abrirPerfil();
+  else if(t.id==="bPase")pase();
+  else if(t.dataset.ics)ics(t.dataset.ics);
+});
+</script>
+</body>
+</html>
