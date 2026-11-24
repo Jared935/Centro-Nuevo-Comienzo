@@ -90,6 +90,8 @@ input[type=checkbox]{min-height:0}
   dialog{width:100%;max-width:100%;margin:auto 0 0;border-radius:22px 22px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
   #toast{bottom:calc(14px + env(safe-area-inset-bottom));width:92vw;text-align:center}
 }
+a.btn{text-decoration:none;display:inline-block;text-align:center}
+@media(max-width:720px){header>span{flex-wrap:wrap}header small{max-width:100%}header .btn{width:auto;min-height:40px;padding:8px 16px}}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -112,7 +114,7 @@ input[type=checkbox]{min-height:0}
 </div>
 
 <div id="app" hidden>
-<header><h1>CRM Centro Nuevo Comienzo, Juventino Rosas</h1><span><small id="who"></small> <button class="btn" id="out">Salir</button></span></header>
+<header><h1>CRM Centro Nuevo Comienzo, Juventino Rosas</h1><span><small id="who"></small> <a class="btn" href="/" id="aPortal">Ver portal</a> <button class="btn" id="out">Salir</button></span></header>
 <nav id="tabs">
   <button data-tab="ini" class="on">Inicio</button>
   <button data-tab="per">Personas</button>
